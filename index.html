@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🍺 Never Running Drink Tracker 🍺</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #242320;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8;
+    --muted: #888680;
+    --amber: #e8a030;
+    --amber-dim: rgba(232,160,48,0.12);
+    --red: #e05050;
+    --green: #4caf7d;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 720px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+  header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+  header p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+  .btn-export {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--green);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .btn-export:hover { background: var(--surface2); border-color: var(--green); }
+  .btn-export svg { flex-shrink: 0; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 600; color: var(--amber); font-family: 'DM Mono', monospace; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-title { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+
+  .form-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-row-bottom { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--amber); }
+  .field select option { background: var(--surface2); }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+  }
+
+  .btn-add {
+    width: 100%;
+    padding: 11px;
+    background: var(--amber);
+    color: #0f0e0c;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-add:hover { opacity: 0.88; }
+  .btn-add:active { transform: scale(0.99); }
+  .btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.9rem;
+  }
+
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-pill {
+    font-size: 12px;
+    padding: 5px 13px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .filter-pill.active { background: var(--amber); color: #0f0e0c; border-color: var(--amber); font-weight: 500; }
+
+  .filter-hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .filter-hint .icon { font-size: 15px; }
+
+  .filter-advanced {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .filter-advanced .fg { flex: 1; min-width: 130px; }
+  .filter-advanced .fg label {
+    display: block; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px;
+  }
+  .filter-advanced .fg select,
+  .filter-advanced .fg input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .filter-advanced .fg select:focus,
+  .filter-advanced .fg input:focus { border-color: var(--amber); }
+  .filter-advanced .fg select option { background: var(--surface2); }
+  .btn-apply {
+    padding: 8px 18px;
+    background: var(--amber); color: #0f0e0c;
+    border: none; border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn-apply:hover { opacity: 0.88; }
+  .btn-clear-filters {
+    padding: 8px 14px;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer;
+  }
+  .btn-clear-filters:hover { color: var(--text); border-color: var(--muted); }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    display: none;
+  }
+  .summary-card.visible { display: block; }
+  .summary-title {
+    font-size: 13px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.9rem;
+  }
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row.total-row {
+    border-top: 1px solid var(--border2);
+    margin-top: 2px; padding-top: 10px; font-weight: 600;
+  }
+  .summary-left { display: flex; align-items: center; gap: 8px; }
+  .summary-cat-icon { width: 22px; text-align: center; }
+  .summary-cat-name { font-size: 14px; }
+  .summary-qty { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--muted); }
+
+  .log-table { width: 100%; border-collapse: collapse; }
+  .log-table th {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 0 12px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .log-table td {
+    padding: 11px 12px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .log-table tr:last-child td { border-bottom: none; }
+  .log-table tr { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+  .cat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--amber-dim);
+    color: var(--amber);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .qty-badge {
+    display: inline-block;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-family: 'DM Mono', monospace;
+  }
+  .date-cell { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .person-cell { font-weight: 500; }
+
+  .action-cell { display: flex; gap: 2px; justify-content: center; align-items: center; }
+  .btn-del {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 15px; padding: 4px 6px;
+    transition: color 0.15s; line-height: 1;
+  }
+  .btn-del:hover { color: var(--red); }
+  .btn-edit {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 13px; padding: 4px 6px;
+    transition: color 0.15s; line-height: 1;
+  }
+  .btn-edit:hover { color: var(--amber); }
+
+  .empty { text-align: center; padding: 2.5rem; color: var(--muted); font-size: 14px; }
+  .loading { text-align: center; padding: 1.5rem; color: var(--muted); font-size: 13px; }
+
+  .leaderboard-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .leaderboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .leaderboard-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .leaderboard-toggles { display: flex; gap: 6px; }
+  .lb-toggle {
+    font-size: 12px;
+    padding: 5px 13px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .lb-toggle.active { background: var(--amber); color: #0f0e0c; border-color: var(--amber); font-weight: 500; }
+  .lb-toggle:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+
+  .lb-table { width: 100%; border-collapse: collapse; }
+  .lb-table th {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lb-table th:last-child { text-align: right; }
+  .lb-table td {
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .lb-table td:last-child { text-align: right; font-family: 'DM Mono', monospace; color: var(--amber); }
+  .lb-table tr:last-child td { border-bottom: none; }
+  .lb-rank { width: 28px; text-align: center; font-size: 13px; color: var(--muted); }
+  .lb-medal { font-size: 16px; }
+  .lb-name { font-weight: 500; }
+  .lb-highlight { background: var(--amber-dim); border-radius: 4px; }
+  .lb-highlight td { color: var(--amber); font-weight: 600; }
+  .lb-you-tag { font-size: 10px; color: var(--amber); margin-left: 6px; font-weight: 500; }
+  .lb-empty { text-align: center; padding: 1.5rem; color: var(--muted); font-size: 13px; }
+
+  .toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); padding: 10px 20px; border-radius: 99px;
+    font-size: 13px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 1.25rem; }
+  .modal .field { margin-bottom: 12px; }
+  .modal .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 1.25rem;
+    justify-content: flex-end;
+  }
+  .btn-save {
+    padding: 10px 22px;
+    background: var(--amber);
+    color: #0f0e0c;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.88; }
+  .btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-cancel {
+    padding: 10px 22px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancel:hover { color: var(--text); border-color: var(--muted); }
+
+  .qty-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .qty-stepper input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    text-align: center;
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 0;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 9px 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .qty-stepper input[type="number"]::-webkit-inner-spin-button,
+  .qty-stepper input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .qty-stepper input[type="number"]:focus {
+    border-color: var(--amber);
+    z-index: 1;
+    position: relative;
+  }
+  .qty-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    padding: 9px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    line-height: 1;
+  }
+  .qty-btn:first-child {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    border-right: none;
+  }
+  .qty-btn:last-child {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    border-left: none;
+  }
+  .qty-btn:hover {
+    background: var(--amber);
+    color: #0f0e0c;
+    border-color: var(--amber);
+  }
+  .qty-btn:active {
+    transform: scale(0.97);
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 12px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .pagination .page-btn {
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pagination .page-btn:hover:not(:disabled) {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  .pagination .page-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .pagination .page-info {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+  .pagination .page-info strong {
+    color: var(--text);
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .table-wrap {
+      margin: 0 -1.25rem;
+      padding: 0 1.25rem;
+    }
+    .form-row { grid-template-columns: 1fr 1fr; }
+    .form-row-bottom { grid-template-columns: 1fr 1fr; }
+    .filter-advanced { flex-direction: column; align-items: stretch; }
+    .filter-advanced .fg { min-width: 100%; }
+    .btn-apply, .btn-clear-filters { width: 100%; text-align: center; }
+    .leaderboard-header { flex-direction: column; align-items: flex-start; }
+    .lb-table td:last-child { white-space: nowrap; }
+    header { flex-direction: column; gap: 12px; }
+    .modal .field-row { grid-template-columns: 1fr; }
+    .modal-actions { flex-direction: column; }
+    .modal-actions button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>🍺 Never Running Drink Tracker 🍺</h1>
+      <p>Track what you drink, when you drank it.</p>
+    </div>
+    <button class="btn-export" onclick="exportToExcel()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Export to Excel
+    </button>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total drinks</div><div class="stat-value" id="total-drinks">0</div></div>
+    <div class="stat"><div class="stat-label">Today's drinks</div><div class="stat-value" id="today-drinks">0</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Log a drink</div>
+    <div class="form-row">
+      <div class="field">
+        <label>Description</label>
+        <input type="text" id="exp-name" placeholder="e.g. Cold IPA, house marg..." />
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="exp-category">
+          <option value="beer">🍺 Beer</option>
+          <option value="margs">🍹 Margs</option>
+          <option value="cocktail">🍸 Cocktails</option>
+          <option value="wine">🍷 Wine</option>
+          <option value="shots">🥃 Shots</option>
+          <option value="remote">💻 Remote Check-in</option>
+          <option value="other">💳 Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Qty</label>
+        <div class="qty-stepper">
+          <button type="button" class="qty-btn" onclick="decrementQty('exp-qty')">−</button>
+          <input type="number" id="exp-qty" value="1" min="1" max="99" step="1" />
+          <button type="button" class="qty-btn" onclick="incrementQty('exp-qty')">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row-bottom">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="exp-date" />
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <input type="time" id="exp-time" />
+      </div>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="exp-person" placeholder="Name" />
+      </div>
+    </div>
+    <div class="field" style="margin-top: 10px;">
+      <button class="btn-add" id="add-btn" onclick="addExpense()">Log drink ＋</button>
+    </div>
+  </div>
+
+  <div class="leaderboard-card" id="leaderboard">
+    <div class="leaderboard-header">
+      <div class="leaderboard-title">🏆 Alcoholic Leaderboard</div>
+      <div class="leaderboard-toggles">
+        <button class="lb-toggle active" onclick="setLeaderboardRange('month', this)">This Month</button>
+        <button class="lb-toggle" onclick="setLeaderboardRange('all', this)">All Time</button>
+      </div>
+    </div>
+    <div id="leaderboard-body"><div class="lb-empty">Log some drinks to see the rankings!</div></div>
+  </div>
+
+  <div class="list-header">
+    <div class="filters">
+      <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-pill" onclick="setFilter('beer', this)">🍺 Beer</button>
+      <button class="filter-pill" onclick="setFilter('margs', this)">🍹 Margs</button>
+      <button class="filter-pill" onclick="setFilter('cocktail', this)">🍸 Cocktails</button>
+      <button class="filter-pill" onclick="setFilter('wine', this)">🍷 Wine</button>
+      <button class="filter-pill" onclick="setFilter('shots', this)">🥃 Shots</button>
+      <button class="filter-pill" onclick="setFilter('remote', this)">💻 Remote Check-in</button>
+    </div>
+  </div>
+
+  <div class="filter-hint">
+    <span class="icon">📊</span>
+    <span>Select a name and date range, then click <strong style="color:var(--amber);">Apply</strong> to see a breakdown by drink type</span>
+  </div>
+
+  <div class="filter-advanced">
+    <div class="fg">
+      <label>Person</label>
+      <select id="filter-person"><option value="">All</option></select>
+    </div>
+    <div class="fg">
+      <label>From</label>
+      <input type="date" id="filter-date-from" />
+    </div>
+    <div class="fg">
+      <label>To</label>
+      <input type="date" id="filter-date-to" />
+    </div>
+    <button class="btn-apply" onclick="applyAdvancedFilters()">Apply</button>
+    <button class="btn-clear-filters" onclick="clearAdvancedFilters()">Clear</button>
+  </div>
+
+  <div class="summary-card" id="summary-card">
+    <div class="summary-title" id="summary-title">Breakdown</div>
+    <div id="summary-body"></div>
+  </div>
+
+  <div class="card" style="padding: 0 1.25rem;">
+    <div id="expense-list"><div class="loading">Loading drinks...</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Edit drink</h2>
+    <div class="field">
+      <label>Description</label>
+      <input type="text" id="edit-name" placeholder="e.g. Cold IPA, house marg..." />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Category</label>
+        <select id="edit-category">
+          <option value="beer">🍺 Beer</option>
+          <option value="margs">🍹 Margs</option>
+          <option value="cocktail">🍸 Cocktails</option>
+          <option value="wine">🍷 Wine</option>
+          <option value="shots">🥃 Shots</option>
+          <option value="remote">💻 Remote Check-in</option>
+          <option value="other">💳 Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Qty</label>
+        <div class="qty-stepper">
+          <button type="button" class="qty-btn" onclick="decrementQty('edit-qty')">−</button>
+          <input type="number" id="edit-qty" value="1" min="1" max="99" step="1" />
+          <button type="button" class="qty-btn" onclick="incrementQty('edit-qty')">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="edit-date" />
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <input type="time" id="edit-time" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Person</label>
+      <input type="text" id="edit-person" placeholder="Name" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-save" id="save-btn" onclick="saveExpense()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://egwkvwsorfbwwwbyenok.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnd2t2d3NvcmZid3d3Ynllbm9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDA0ODAsImV4cCI6MjA5NDcxNjQ4MH0.iYY_NAMFEwmQJz97zfhtkEUgQXPSdi9h0y4y4g0ZI3g';
+  const HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+
+  const catIcons   = { beer:'🍺', margs:'🍹', cocktail:'🍸', wine:'🍷', shots:'🥃', remote:'💻', other:'💳' };
+  const catLabels  = { beer:'Beer', margs:'Margs', cocktail:'Cocktails', wine:'Wine', shots:'Shots', remote:'Remote Check-in', other:'Other' };
+  const catOrder   = ['beer','margs','cocktail','wine','shots','remote','other'];
+
+  let expenses = [];
+  let currentFilter = 'all';
+  let editingId = null;
+  let filterPerson = '';
+  let filterDateFrom = '';
+  let filterDateTo = '';
+  let currentPage = 1;
+  const PAGE_SIZE = 10;
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function normalizeName(name) {
+    const s = (name || '').trim();
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
+
+  function setDefaultDateTime() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = pad(now.getMonth() + 1);
+    const d = pad(now.getDate());
+    document.getElementById('exp-date').value = `${y}-${m}-${d}`;
+    document.getElementById('exp-time').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  }
+
+  async function fetchExpenses() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/expenses?order=drink_date.desc`, { headers: HEADERS });
+      if (!res.ok) throw new Error(await res.text());
+      expenses = await res.json();
+      populatePersonDropdown();
+      render();
+    } catch(e) {
+      document.getElementById('expense-list').innerHTML =
+        `<div class="empty">Could not load. Check Supabase setup.<br><small style="font-size:11px;color:#555">${e.message}</small></div>`;
+    }
+  }
+
+  function populatePersonDropdown() {
+    const names = [...new Set(expenses.map(e => normalizeName(e.paid_by)).filter(Boolean))].sort();
+    const sel = document.getElementById('filter-person');
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">All</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+    sel.value = currentVal;
+  }
+
+  function getDrinkDateISO() {
+    const dateVal = document.getElementById('exp-date').value;
+    const timeVal = document.getElementById('exp-time').value;
+    if (!dateVal) return null;
+    return new Date(dateVal + 'T' + (timeVal || '12:00') + ':00').toISOString();
+  }
+
+  function getDrinkDateFromInputs(dateVal, timeVal) {
+    if (!dateVal) return null;
+    return new Date(dateVal + 'T' + (timeVal || '12:00') + ':00').toISOString();
+  }
+
+  function validateFields(name, person, dateVal) {
+    const missing = [];
+    if (!name) missing.push('description');
+    if (!person) missing.push('your name');
+    if (dateVal !== undefined && !dateVal) missing.push('date');
+    return missing;
+  }
+
+  async function addExpense() {
+    const name     = document.getElementById('exp-name').value.trim();
+    const category = document.getElementById('exp-category').value;
+    const qty      = Math.max(1, parseInt(document.getElementById('exp-qty').value) || 1);
+    const person   = normalizeName(document.getElementById('exp-person').value);
+    const drinkDate = getDrinkDateISO();
+
+    const missing = validateFields(name, person);
+    if (missing.length > 0) {
+      showToast('Please enter: ' + missing.join(', '));
+      return;
+    }
+
+    const btn = document.getElementById('add-btn');
+    btn.disabled = true;
+    btn.textContent = 'Logging...';
+
+    try {
+      const body = { name, amount: 0, category, quantity: qty, paid_by: person };
+      if (drinkDate) body.drink_date = drinkDate;
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/expenses`, {
+        method: 'POST',
+        headers: HEADERS,
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const [newExp] = await res.json();
+      expenses.unshift(newExp);
+      populatePersonDropdown();
+      currentPage = 1;
+      render();
+      showToast('Drink logged 🍺');
+      document.getElementById('exp-name').value = '';
+      document.getElementById('exp-qty').value = '1';
+      setDefaultDateTime();
+    } catch(e) {
+      showToast('Error: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Log drink ＋';
+  }
+
+  async function deleteExpense(id) {
+    if (!confirm('Remove this entry?')) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/expenses?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+      if (!res.ok) throw new Error(await res.text());
+      expenses = expenses.filter(e => e.id !== id);
+      populatePersonDropdown();
+      currentPage = 1;
+      render();
+      showToast('Entry removed.');
+    } catch(e) {
+      showToast('Error: ' + e.message);
+    }
+  }
+
+  function editExpense(id) {
+    const exp = expenses.find(e => e.id === id);
+    if (!exp) return;
+    editingId = id;
+
+    document.getElementById('edit-name').value = exp.name || '';
+    document.getElementById('edit-category').value = exp.category || 'beer';
+    document.getElementById('edit-qty').value = exp.quantity || 1;
+    document.getElementById('edit-person').value = exp.paid_by || '';
+
+    const dt = exp.drink_date ? new Date(exp.drink_date) : new Date(exp.created_at);
+    document.getElementById('edit-date').value = dt.toISOString().slice(0, 10);
+    document.getElementById('edit-time').value = pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+
+    document.getElementById('edit-modal').classList.add('show');
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('show');
+    editingId = null;
+  }
+
+  async function saveExpense() {
+    if (!editingId) return;
+    const name     = document.getElementById('edit-name').value.trim();
+    const category = document.getElementById('edit-category').value;
+    const qty      = Math.max(1, parseInt(document.getElementById('edit-qty').value) || 1);
+    const person   = normalizeName(document.getElementById('edit-person').value);
+    const dateVal  = document.getElementById('edit-date').value;
+    const timeVal  = document.getElementById('edit-time').value;
+
+    const missing = validateFields(name, person, dateVal);
+    if (missing.length > 0) {
+      showToast('Please enter: ' + missing.join(', '));
+      return;
+    }
+
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const drinkDate = getDrinkDateFromInputs(dateVal, timeVal);
+      const body = { name, amount: 0, category, quantity: qty, paid_by: person };
+      if (drinkDate) body.drink_date = drinkDate;
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/expenses?id=eq.${editingId}`, {
+        method: 'PATCH',
+        headers: HEADERS,
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      const idx = expenses.findIndex(e => e.id === editingId);
+      if (idx !== -1) {
+        expenses[idx] = { ...expenses[idx], ...body };
+      }
+      populatePersonDropdown();
+      currentPage = 1;
+      render();
+      showToast('Changes saved ✅');
+      closeEditModal();
+    } catch(e) {
+      showToast('Error: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Save changes';
+  }
+
+  function exportToExcel() {
+    if (expenses.length === 0) { showToast('Nothing to export yet!'); return; }
+
+    const rows = expenses.map(exp => {
+      const dt = exp.drink_date ? new Date(exp.drink_date) : new Date(exp.created_at);
+      return {
+        'Date': dt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        'Description': exp.name,
+        'Category': catLabels[exp.category] || exp.category,
+        'Person': exp.paid_by,
+        'Quantity': Number(exp.quantity) || 1
+      };
+    });
+
+    const totalRow = {
+      'Date': '',
+      'Description': '',
+      'Category': '',
+      'Person': 'TOTAL',
+      'Quantity': rows.reduce((s, r) => s + r['Quantity'], 0)
+    };
+    rows.push(totalRow);
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [ { wch: 22 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 10 } ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bar Tab');
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `bar-tab-${today}.xlsx`);
+    showToast('Downloaded! 📊');
+  }
+
+  function incrementQty(id) {
+    const input = document.getElementById(id);
+    const max = parseInt(input.getAttribute('max')) || 99;
+    let val = parseInt(input.value) || 1;
+    if (val < max) input.value = val + 1;
+  }
+
+  function decrementQty(id) {
+    const input = document.getElementById(id);
+    const min = parseInt(input.getAttribute('min')) || 1;
+    let val = parseInt(input.value) || 1;
+    if (val > min) input.value = val - 1;
+  }
+
+  function goToPage(page) {
+    currentPage = page;
+    render();
+  }
+
+  function setFilter(cat, btn) {
+    currentFilter = cat;
+    currentPage = 1;
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function isToday(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(dateStr), now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  }
+
+  function applyAdvancedFilters() {
+    filterPerson = document.getElementById('filter-person').value;
+    filterDateFrom = document.getElementById('filter-date-from').value;
+    filterDateTo = document.getElementById('filter-date-to').value;
+    currentPage = 1;
+    render();
+  }
+
+  function clearAdvancedFilters() {
+    document.getElementById('filter-person').value = '';
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+    filterPerson = '';
+    filterDateFrom = '';
+    filterDateTo = '';
+    currentPage = 1;
+    render();
+  }
+
+  function getFilteredExpenses() {
+    let items = expenses;
+    if (currentFilter !== 'all') items = items.filter(e => e.category === currentFilter);
+    if (filterPerson) items = items.filter(e => e.paid_by === filterPerson);
+    if (filterDateFrom) {
+      const from = new Date(filterDateFrom + 'T00:00:00');
+      items = items.filter(e => new Date(e.drink_date || e.created_at) >= from);
+    }
+    if (filterDateTo) {
+      const to = new Date(filterDateTo + 'T23:59:59');
+      items = items.filter(e => new Date(e.drink_date || e.created_at) <= to);
+    }
+    return items;
+  }
+
+  function buildSummary(filtered) {
+    const agg = {};
+    for (const exp of filtered) {
+      const cat = exp.category || 'other';
+      if (!agg[cat]) agg[cat] = 0;
+      agg[cat] += Number(exp.quantity) || 1;
+    }
+
+    let html = '';
+    let grandQty = 0;
+    for (const cat of catOrder) {
+      if (!agg[cat]) continue;
+      grandQty += agg[cat];
+      html += `
+        <div class="summary-row">
+          <div class="summary-left">
+            <span class="summary-cat-icon">${catIcons[cat] || '💳'}</span>
+            <span class="summary-cat-name">${catLabels[cat] || cat}</span>
+          </div>
+          <span class="summary-qty">x${agg[cat]}</span>
+        </div>`;
+    }
+    html += `
+      <div class="summary-row total-row">
+        <div class="summary-left"><span style="color:var(--amber);">TOTAL</span></div>
+        <span class="summary-qty">x${grandQty}</span>
+      </div>`;
+    return html;
+  }
+
+  let leaderboardRange = 'month';
+
+  function setLeaderboardRange(range, btn) {
+    leaderboardRange = range;
+    document.querySelectorAll('.lb-toggle').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    buildLeaderboard();
+  }
+
+  function buildLeaderboard() {
+    const el = document.getElementById('leaderboard-body');
+
+    if (expenses.length === 0) {
+      el.innerHTML = '<div class="lb-empty">Log some drinks to see the rankings!</div>';
+      return;
+    }
+
+    // Filter by current month if needed
+    let filtered = expenses;
+    if (leaderboardRange === 'month') {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      filtered = expenses.filter(e => {
+        const dt = e.drink_date ? new Date(e.drink_date) : new Date(e.created_at);
+        return dt >= monthStart;
+      });
+    }
+
+    if (filtered.length === 0) {
+      el.innerHTML = '<div class="lb-empty">No drinks this month yet. Get drinking! 🍺</div>';
+      return;
+    }
+
+    // Aggregate by person
+    const agg = {};
+    for (const exp of filtered) {
+      const person = normalizeName(exp.paid_by) || 'Unknown';
+      if (!agg[person]) agg[person] = 0;
+      agg[person] += Number(exp.quantity) || 1;
+    }
+
+    // Sort descending
+    const sorted = Object.entries(agg)
+      .map(([name, qty]) => ({ name, qty }))
+      .sort((a, b) => b.qty - a.qty);
+
+    // Determine the current person (the one who just logged, or first person in list)
+    const lastPerson = document.getElementById('exp-person')?.value?.trim() || '';
+    const topQty = sorted.length > 0 ? sorted[0].qty : 0;
+
+    let html = `<table class="lb-table">
+      <thead><tr><th>Rank</th><th>Name</th><th>Drinks</th></tr></thead><tbody>`;
+
+    for (let i = 0; i < sorted.length; i++) {
+      const { name, qty } = sorted[i];
+      const rank = i + 1;
+      const isYou = name.toLowerCase() === lastPerson.toLowerCase();
+
+      let rankDisplay;
+      if (rank === 1) rankDisplay = '<span class="lb-medal">🥇</span>';
+      else if (rank === 2) rankDisplay = '<span class="lb-medal">🥈</span>';
+      else if (rank === 3) rankDisplay = '<span class="lb-medal">🥉</span>';
+      else rankDisplay = `<span class="lb-rank">${rank}</span>`;
+
+      const rowClass = isYou ? 'lb-highlight' : '';
+      const youTag = isYou ? '<span class="lb-you-tag">(you)</span>' : '';
+
+      // Show a small progress bar relative to leader (visual indicator)
+      const barPct = topQty > 0 ? Math.round((qty / topQty) * 100) : 0;
+      const barColor = rank === 1 ? 'var(--amber)' : 'var(--amber-dim)';
+
+      html += `<tr class="${rowClass}">
+        <td>${rankDisplay}</td>
+        <td class="lb-name">${name}${youTag}</td>
+        <td>
+          x${qty}
+          <span style="display:inline-block;width:40px;height:4px;background:var(--surface2);border-radius:2px;vertical-align:middle;margin-left:6px;overflow:hidden;">
+            <span style="display:block;height:100%;width:${barPct}%;background:${barColor};border-radius:2px;transition:width 0.3s;"></span>
+          </span>
+        </td>
+      </tr>`;
+    }
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }
+
+  function formatDate(dt) {
+    // On narrow screens (mobile), use a more compact format
+    if (window.innerWidth <= 600) {
+      const now = new Date();
+      const diffMs = now - dt;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return dt.toLocaleDateString('en-US', { weekday: 'short' });
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function render() {
+    const todayExp    = expenses.filter(e => isToday(e.drink_date || e.created_at));
+    const totalDrinks = expenses.reduce((s, e) => s + (Number(e.quantity) || 1), 0);
+    const todayDrinks = todayExp.reduce((s, e) => s + (Number(e.quantity) || 1), 0);
+
+    document.getElementById('total-drinks').textContent = totalDrinks;
+    document.getElementById('today-drinks').textContent = todayDrinks;
+
+    const filtered = getFilteredExpenses();
+    const el = document.getElementById('expense-list');
+
+    const summaryCard = document.getElementById('summary-card');
+    const hasAdvancedFilters = filterPerson || filterDateFrom || filterDateTo;
+
+    if (hasAdvancedFilters && filtered.length > 0) {
+      let parts = [];
+      if (filterPerson) parts.push(filterPerson);
+      if (filterDateFrom) parts.push('from ' + filterDateFrom);
+      if (filterDateTo) parts.push('to ' + filterDateTo);
+      document.getElementById('summary-title').textContent =
+        '🍺 Breakdown' + (parts.length ? ' for ' + parts.join(' · ') : '');
+      document.getElementById('summary-body').innerHTML = buildSummary(filtered);
+      summaryCard.classList.add('visible');
+    } else {
+      summaryCard.classList.remove('visible');
+    }
+
+    if (filtered.length === 0) {
+      el.innerHTML = '<div class="empty">Nothing here yet. Log the first drink! 🍺</div>';
+      buildLeaderboard();
+      return;
+    }
+
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+    el.innerHTML = `
+      <div class="table-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Drink</th>
+            <th>Person</th>
+            <th>Qty</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pageItems.map(exp => {
+            const qty   = Number(exp.quantity) || 1;
+            const dt    = exp.drink_date ? new Date(exp.drink_date) : new Date(exp.created_at);
+            const date  = formatDate(dt);
+            const icon  = catIcons[exp.category]  || '💳';
+            const label = catLabels[exp.category] || exp.category;
+            return `<tr>
+              <td>
+                <div style="font-weight:500">${exp.name}</div>
+                <span class="cat-badge">${icon} ${label}</span>
+              </td>
+              <td class="person-cell">${exp.paid_by}</td>
+              <td><span class="qty-badge">x${qty}</span></td>
+              <td class="date-cell">${date}</td>
+              <td>
+                <div class="action-cell">
+                  <button class="btn-edit" onclick="editExpense('${exp.id}')" title="Edit">✎</button>
+                  <button class="btn-del" onclick="deleteExpense('${exp.id}')" title="Remove">✕</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>
+      <div class="pagination">
+        <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>« Prev</button>
+        <span class="page-info">Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong> (<strong>${filtered.length}</strong> total)</span>
+        <button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Next »</button>
+      </div>`;
+
+    // Update leaderboard whenever render runs
+    buildLeaderboard();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditModal();
+  });
+
+  setDefaultDateTime();
+  fetchExpenses();
+</script>
+</body>
+</html>
