@@ -558,12 +558,6 @@
       <h1>🍺 Never Running Drink Tracker 🍺</h1>
       <p>Track what you drink, when you drank it.</p>
     </div>
-    <button class="btn-export" onclick="exportToExcel()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
-      Export to Excel
-    </button>
   </header>
 
   <div class="stats">
@@ -623,6 +617,7 @@
       <div class="leaderboard-title">🏆 Alcoholic Leaderboard</div>
       <div class="leaderboard-toggles">
         <button class="lb-toggle active" onclick="setLeaderboardRange('month', this)">This Month</button>
+        <button class="lb-toggle" onclick="setLeaderboardRange('today', this)">Today</button>
         <button class="lb-toggle" onclick="setLeaderboardRange('all', this)">All Time</button>
       </div>
     </div>
@@ -671,6 +666,13 @@
   <div class="card" style="padding: 0 1.25rem;">
     <div id="expense-list"><div class="loading">Loading drinks...</div></div>
   </div>
+
+  <button class="btn-export" onclick="exportToExcel()" style="margin: 0 auto 1rem;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    Export to Excel
+  </button>
 
 </div>
 
@@ -747,7 +749,7 @@
   let filterDateFrom = '';
   let filterDateTo = '';
   let currentPage = 1;
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 5;
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -1083,9 +1085,15 @@
       return;
     }
 
-    // Filter by current month if needed
+    // Filter by today / current month if needed
     let filtered = expenses;
-    if (leaderboardRange === 'month') {
+    if (leaderboardRange === 'today') {
+      const now = new Date();
+      filtered = expenses.filter(e => {
+        const dt = e.drink_date ? new Date(e.drink_date) : new Date(e.created_at);
+        return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate();
+      });
+    } else if (leaderboardRange === 'month') {
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       filtered = expenses.filter(e => {
