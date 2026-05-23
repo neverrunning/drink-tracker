@@ -150,35 +150,37 @@
   }
   .filter-pill.active { background: var(--amber); color: #0f0e0c; border-color: var(--amber); font-weight: 500; }
 
-  .filter-hint {
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 0.6rem;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .filter-hint .icon { font-size: 15px; }
-
-  .filter-advanced {
+  .breakdown-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 1rem;
+    padding: 1.25rem;
     margin-bottom: 1.25rem;
+  }
+  .breakdown-header {
     display: flex;
-    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
     flex-wrap: wrap;
+    gap: 10px;
+  }
+  .breakdown-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .breakdown-title .icon { font-size: 18px; }
+  .breakdown-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     align-items: flex-end;
+    margin-bottom: 1rem;
   }
-  .filter-advanced .fg { flex: 1; min-width: 130px; }
-  .filter-advanced .fg label {
-    display: block; font-size: 11px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px;
+  .breakdown-filters .bf-group { display: flex; flex-direction: column; gap: 4px; }
+  .breakdown-filters .bf-group label {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
   }
-  .filter-advanced .fg select,
-  .filter-advanced .fg input {
-    width: 100%;
+  .breakdown-filters .bf-group select,
+  .breakdown-filters .bf-group input {
     background: var(--surface2);
     border: 1px solid var(--border2);
     border-radius: var(--radius-sm);
@@ -187,53 +189,55 @@
     font-size: 13px;
     padding: 8px 10px;
     outline: none;
+    transition: border-color 0.15s;
   }
-  .filter-advanced .fg select:focus,
-  .filter-advanced .fg input:focus { border-color: var(--amber); }
-  .filter-advanced .fg select option { background: var(--surface2); }
-  .btn-apply {
-    padding: 8px 18px;
-    background: var(--amber); color: #0f0e0c;
-    border: none; border-radius: var(--radius-sm);
+  .breakdown-filters .bf-group select:focus,
+  .breakdown-filters .bf-group input:focus { border-color: var(--amber); }
+  .breakdown-filters .bf-group select option { background: var(--surface2); }
+  .breakdown-filters .bf-group input[type="date"] { min-width: 140px; }
+  .breakdown-filters .bf-group select { min-width: 120px; }
+  .range-tabs { display: flex; gap: 4px; flex-wrap: wrap; align-self: flex-end; }
+  .range-tab {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s;
   }
-  .btn-apply:hover { opacity: 0.88; }
-  .btn-clear-filters {
-    padding: 8px 14px;
-    background: transparent; color: var(--muted);
-    border: 1px solid var(--border2); border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px; cursor: pointer;
-  }
-  .btn-clear-filters:hover { color: var(--text); border-color: var(--muted); }
-
-  .summary-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-    display: none;
-  }
-  .summary-card.visible { display: block; }
-  .summary-title {
-    font-size: 13px; font-weight: 500; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.9rem;
-  }
-  .summary-row {
+  .range-tab.active { background: var(--amber); color: #0f0e0c; border-color: var(--amber); font-weight: 500; }
+  .range-tab:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+  .custom-dates { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .custom-dates.hidden { display: none; }
+  .breakdown-body { margin-top: 0.5rem; }
+  .brow {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 0; border-bottom: 1px solid var(--border);
+    padding: 9px 10px; border-bottom: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.12s;
   }
-  .summary-row:last-child { border-bottom: none; }
-  .summary-row.total-row {
+  .brow:hover { background: var(--surface2); }
+  .brow:last-child { border-bottom: none; }
+  .brow.total-row {
     border-top: 1px solid var(--border2);
-    margin-top: 2px; padding-top: 10px; font-weight: 600;
+    margin-top: 4px; padding-top: 11px; font-weight: 600;
   }
-  .summary-left { display: flex; align-items: center; gap: 8px; }
-  .summary-cat-icon { width: 22px; text-align: center; }
-  .summary-cat-name { font-size: 14px; }
-  .summary-qty { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--muted); }
+  .brow.total-row:hover { background: transparent; cursor: default; }
+  .brow.active-filter {
+    background: var(--amber-dim);
+    border-color: var(--amber);
+  }
+  .brow.active-filter .brow-name { color: var(--amber); }
+  .brow-left { display: flex; align-items: center; gap: 10px; }
+  .brow-icon { width: 22px; text-align: center; font-size: 16px; }
+  .brow-name { font-size: 14px; color: var(--text); }
+  .brow-qty { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--muted); }
+  .brow.empty-row { cursor: default; justify-content: center; color: var(--muted); font-size: 13px; padding: 1.5rem; }
+  .brow.empty-row:hover { background: transparent; }
 
   .log-table { width: 100%; border-collapse: collapse; }
   .log-table th {
@@ -538,9 +542,8 @@
     }
     .form-row { grid-template-columns: 1fr 1fr; }
     .form-row-bottom { grid-template-columns: 1fr 1fr; }
-    .filter-advanced { flex-direction: column; align-items: stretch; }
-    .filter-advanced .fg { min-width: 100%; }
-    .btn-apply, .btn-clear-filters { width: 100%; text-align: center; }
+    .breakdown-filters { flex-direction: column; align-items: stretch; }
+    .breakdown-filters .bf-group { min-width: 100%; }
     .leaderboard-header { flex-direction: column; align-items: flex-start; }
     .lb-table td:last-child { white-space: nowrap; }
     header { flex-direction: column; gap: 12px; }
@@ -636,31 +639,35 @@
     </div>
   </div>
 
-  <div class="filter-hint">
-    <span class="icon">📊</span>
-    <span>Select a name and date range, then click <strong style="color:var(--amber);">Apply</strong> to see a breakdown by drink type</span>
-  </div>
-
-  <div class="filter-advanced">
-    <div class="fg">
-      <label>Person</label>
-      <select id="filter-person"><option value="">All</option></select>
+  <div class="breakdown-card" id="breakdown-card">
+    <div class="breakdown-header">
+      <div class="breakdown-title"><span class="icon">📊</span> Drink Breakdown</div>
     </div>
-    <div class="fg">
-      <label>From</label>
-      <input type="date" id="filter-date-from" />
+    <div class="breakdown-filters">
+      <div class="bf-group">
+        <label>Person</label>
+        <select id="bd-person" onchange="onBreakdownPersonChange()"><option value="">All</option></select>
+      </div>
+      <div class="range-tabs">
+        <button class="range-tab active" onclick="setBreakdownRange('month', this)">This Month</button>
+        <button class="range-tab" onclick="setBreakdownRange('today', this)">Today</button>
+        <button class="range-tab" onclick="setBreakdownRange('all', this)">All Time</button>
+        <button class="range-tab" onclick="setBreakdownRange('custom', this)">Custom</button>
+      </div>
+      <div class="custom-dates hidden" id="bd-custom-dates">
+        <div class="bf-group">
+          <label>From</label>
+          <input type="date" id="bd-date-from" onchange="onBreakdownCustomChange()" />
+        </div>
+        <div class="bf-group">
+          <label>To</label>
+          <input type="date" id="bd-date-to" onchange="onBreakdownCustomChange()" />
+        </div>
+      </div>
     </div>
-    <div class="fg">
-      <label>To</label>
-      <input type="date" id="filter-date-to" />
+    <div class="breakdown-body" id="breakdown-body">
+      <div class="brow empty-row">No drinks match the current filters.</div>
     </div>
-    <button class="btn-apply" onclick="applyAdvancedFilters()">Apply</button>
-    <button class="btn-clear-filters" onclick="clearAdvancedFilters()">Clear</button>
-  </div>
-
-  <div class="summary-card" id="summary-card">
-    <div class="summary-title" id="summary-title">Breakdown</div>
-    <div id="summary-body"></div>
   </div>
 
   <div class="card" style="padding: 0 1.25rem;">
@@ -745,9 +752,10 @@
   let expenses = [];
   let currentFilter = 'all';
   let editingId = null;
-  let filterPerson = '';
-  let filterDateFrom = '';
-  let filterDateTo = '';
+  let bdPerson = '';
+  let bdRange = 'month';
+  let bdDateFrom = '';
+  let bdDateTo = '';
   let currentPage = 1;
   const PAGE_SIZE = 5;
 
@@ -783,7 +791,7 @@
 
   function populatePersonDropdown() {
     const names = [...new Set(expenses.map(e => normalizeName(e.paid_by)).filter(Boolean))].sort();
-    const sel = document.getElementById('filter-person');
+    const sel = document.getElementById('bd-person');
     const currentVal = sel.value;
     sel.innerHTML = '<option value="">All</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
     sel.value = currentVal;
@@ -1004,41 +1012,68 @@
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
   }
 
-  function applyAdvancedFilters() {
-    filterPerson = document.getElementById('filter-person').value;
-    filterDateFrom = document.getElementById('filter-date-from').value;
-    filterDateTo = document.getElementById('filter-date-to').value;
-    currentPage = 1;
-    render();
-  }
-
-  function clearAdvancedFilters() {
-    document.getElementById('filter-person').value = '';
-    document.getElementById('filter-date-from').value = '';
-    document.getElementById('filter-date-to').value = '';
-    filterPerson = '';
-    filterDateFrom = '';
-    filterDateTo = '';
-    currentPage = 1;
-    render();
-  }
-
   function getFilteredExpenses() {
     let items = expenses;
     if (currentFilter !== 'all') items = items.filter(e => e.category === currentFilter);
-    if (filterPerson) items = items.filter(e => e.paid_by === filterPerson);
-    if (filterDateFrom) {
-      const from = new Date(filterDateFrom + 'T00:00:00');
-      items = items.filter(e => new Date(e.drink_date || e.created_at) >= from);
-    }
-    if (filterDateTo) {
-      const to = new Date(filterDateTo + 'T23:59:59');
-      items = items.filter(e => new Date(e.drink_date || e.created_at) <= to);
+    // Apply breakdown person filter
+    if (bdPerson) items = items.filter(e => e.paid_by === bdPerson);
+    // Apply breakdown date range filter
+    if (bdRange === 'today') {
+      const now = new Date();
+      items = items.filter(e => {
+        const dt = new Date(e.drink_date || e.created_at);
+        return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate();
+      });
+    } else if (bdRange === 'month') {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      items = items.filter(e => new Date(e.drink_date || e.created_at) >= monthStart);
+    } else if (bdRange === 'custom') {
+      if (bdDateFrom) {
+        const from = new Date(bdDateFrom + 'T00:00:00');
+        items = items.filter(e => new Date(e.drink_date || e.created_at) >= from);
+      }
+      if (bdDateTo) {
+        const to = new Date(bdDateTo + 'T23:59:59');
+        items = items.filter(e => new Date(e.drink_date || e.created_at) <= to);
+      }
     }
     return items;
   }
 
-  function buildSummary(filtered) {
+  function setBreakdownRange(range, btn) {
+    bdRange = range;
+    document.querySelectorAll('.range-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Show/hide custom date inputs
+    document.getElementById('bd-custom-dates').classList.toggle('hidden', range !== 'custom');
+    currentPage = 1;
+    render();
+  }
+
+  function onBreakdownCustomChange() {
+    bdDateFrom = document.getElementById('bd-date-from').value;
+    bdDateTo = document.getElementById('bd-date-to').value;
+    currentPage = 1;
+    render();
+  }
+
+  function onBreakdownPersonChange() {
+    bdPerson = document.getElementById('bd-person').value;
+    currentPage = 1;
+    render();
+  }
+
+  function buildBreakdownPanel() {
+    const filtered = getFilteredExpenses();
+    const el = document.getElementById('breakdown-body');
+
+    if (filtered.length === 0) {
+      el.innerHTML = '<div class="brow empty-row">No drinks match the current filters.</div>';
+      return;
+    }
+
+    // Aggregate by category
     const agg = {};
     for (const exp of filtered) {
       const cat = exp.category || 'other';
@@ -1051,21 +1086,38 @@
     for (const cat of catOrder) {
       if (!agg[cat]) continue;
       grandQty += agg[cat];
+      const isActive = currentFilter === cat;
       html += `
-        <div class="summary-row">
-          <div class="summary-left">
-            <span class="summary-cat-icon">${catIcons[cat] || '💳'}</span>
-            <span class="summary-cat-name">${catLabels[cat] || cat}</span>
+        <div class="brow ${isActive ? 'active-filter' : ''}" onclick="toggleBreakdownFilter('${cat}')">
+          <div class="brow-left">
+            <span class="brow-icon">${catIcons[cat] || '💳'}</span>
+            <span class="brow-name">${catLabels[cat] || cat}</span>
           </div>
-          <span class="summary-qty">x${agg[cat]}</span>
+          <span class="brow-qty">x${agg[cat]}</span>
         </div>`;
     }
     html += `
-      <div class="summary-row total-row">
-        <div class="summary-left"><span style="color:var(--amber);">TOTAL</span></div>
-        <span class="summary-qty">x${grandQty}</span>
+      <div class="brow total-row">
+        <div class="brow-left">
+          <span style="color:var(--amber);font-weight:600;">TOTAL</span>
+        </div>
+        <span class="brow-qty" style="color:var(--amber);">x${grandQty}</span>
       </div>`;
-    return html;
+
+    el.innerHTML = html;
+  }
+
+  function toggleBreakdownFilter(cat) {
+    if (currentFilter === cat) {
+      // Deactivate: go back to All
+      currentFilter = 'all';
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.toggle('active', b.textContent.trim() === 'All'));
+    } else {
+      currentFilter = cat;
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.toggle('active', b.textContent.trim() === catLabels[cat] || b.textContent.includes(catIcons[cat])));
+    }
+    currentPage = 1;
+    render();
   }
 
   let leaderboardRange = 'month';
@@ -1183,24 +1235,11 @@
     document.getElementById('total-drinks').textContent = totalDrinks;
     document.getElementById('today-drinks').textContent = todayDrinks;
 
+    // Always build the breakdown panel
+    buildBreakdownPanel();
+
     const filtered = getFilteredExpenses();
     const el = document.getElementById('expense-list');
-
-    const summaryCard = document.getElementById('summary-card');
-    const hasAdvancedFilters = filterPerson || filterDateFrom || filterDateTo;
-
-    if (hasAdvancedFilters && filtered.length > 0) {
-      let parts = [];
-      if (filterPerson) parts.push(filterPerson);
-      if (filterDateFrom) parts.push('from ' + filterDateFrom);
-      if (filterDateTo) parts.push('to ' + filterDateTo);
-      document.getElementById('summary-title').textContent =
-        '🍺 Breakdown' + (parts.length ? ' for ' + parts.join(' · ') : '');
-      document.getElementById('summary-body').innerHTML = buildSummary(filtered);
-      summaryCard.classList.add('visible');
-    } else {
-      summaryCard.classList.remove('visible');
-    }
 
     if (filtered.length === 0) {
       el.innerHTML = '<div class="empty">Nothing here yet. Log the first drink! 🍺</div>';
