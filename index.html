@@ -704,7 +704,7 @@
     <div class="ai-summary-body" id="ai-summary-body">
       Click "Generate AI Summary" to get a fun, AI-powered recap of your drinking session!
     </div>
-    <p style="font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px;">⚠️ Only 10 free summary requests per min. Use responsibly.</p>
+    <p style="font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px;">⚠️ Only 10 free summary requests per minute. Use responsibly.</p>
   </div>
 
   <div class="list-header">
@@ -846,7 +846,7 @@
   function normalizeName(name) {
     const s = (name || '').trim();
     if (!s) return s;
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   }
 
   function setDefaultDateTime() {
@@ -1042,7 +1042,7 @@
         'Date': dt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
         'Description': exp.name,
         'Category': catLabels[exp.category] || exp.category,
-        'Person': exp.paid_by,
+        'Person': normalizeName(exp.paid_by),
         'Quantity': Number(exp.quantity) || 1
       };
     });
@@ -1364,7 +1364,7 @@
                 <div style="font-weight:500">${exp.name}</div>
                 <span class="cat-badge">${icon} ${label}</span>
               </td>
-              <td class="person-cell">${exp.paid_by}</td>
+              <td class="person-cell">${normalizeName(exp.paid_by)}</td>
               <td><span class="qty-badge">x${qty}</span></td>
               <td class="date-cell">${date}</td>
               <td>
@@ -1443,7 +1443,7 @@
 
     const prompt = `Here's the drink log data for a group ${rangeLabel}: ${dataStr}. Write a fun, lighthearted summary (3-4 sentences) that calls out each person by name and what they've been up to. Give anyone at the top a playful compliment (if multiple people are tied for first, give them all equal credit), tease the lightweights a little, and make observations about their drink choices — you can reference specific drink names when it adds flavor, but don't force it. Mention who's loyal to one thing vs who's all over the place, and who has questionable taste. End with an overall vibe check of the group's session. Use emojis. Keep it cheeky but friendly — like a funny recap between friends.
 
-Important context: This group has a tradition of going to Marg Club every Tuesday where they get $1 margs on certain Tuesdays. If the data shows Tuesday-heavy margarita drinking, call out and celebrate that tradition in the recap if the summary is generate on a Tuesday. If the summary is not generated on a Tuesday, then done give a shoutout to $1 Margs.`;
+Important context: This group has a tradition of going to Marg Club every Tuesday where they get $1 margs on certain Tuesdays. If the data shows Tuesday-heavy margarita drinking, call out and celebrate that tradition in the recap.`;
 
     try {
       const res = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=AIzaSyDjZZEe44on3ktcNu0Gxk86gL8h5JTPipg', {
