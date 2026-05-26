@@ -361,6 +361,68 @@
   .lb-you-tag { font-size: 10px; color: var(--amber); margin-left: 6px; font-weight: 500; }
   .lb-empty { text-align: center; padding: 1.5rem; color: var(--muted); font-size: 13px; }
 
+  .ai-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    display: block;
+  }
+  .ai-summary-result {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    padding: 0.5rem 0;
+    display: none;
+  }
+  .ai-summary-result.show { display: block; }
+  .ai-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+  }
+  .ai-summary-title { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 7px; }
+  .ai-summary-body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    padding: 0.5rem 0;
+  }
+  .ai-summary-body .loading-dots { color: var(--muted); }
+  .ai-summary-body .loading-dots::after {
+    content: '';
+    animation: dots 1.2s steps(4, end) infinite;
+  }
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+    100% { content: ''; }
+  }
+  .btn-ai {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--amber);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-ai:hover { background: var(--surface2); border-color: var(--amber); }
+  .btn-ai:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ai svg { flex-shrink: 0; }
+
   .toast {
     position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
     background: var(--surface2); border: 1px solid var(--border2);
@@ -607,7 +669,7 @@
       </div>
       <div class="field">
         <label>Your name</label>
-        <input type="text" id="exp-person" placeholder="Name" />
+        <input type="text" id="exp-person" placeholder="Name" list="person-suggestions" />
       </div>
     </div>
     <div class="field" style="margin-top: 10px;">
@@ -626,6 +688,23 @@
       </div>
     </div>
     <div id="leaderboard-body"><div class="lb-empty">Log some drinks to see the rankings!</div></div>
+  </div>
+
+  <div class="ai-summary-card" id="ai-summary-card">
+    <div class="ai-summary-header">
+      <div class="ai-summary-title">🤖 AI Bar Summary</div>
+      <button class="btn-ai" onclick="generateAISummary()" id="ai-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path d="M12 8v4l2 2"/>
+        </svg>
+        Generate AI Summary
+      </button>
+    </div>
+    <div class="ai-summary-body" id="ai-summary-body">
+      Click "Generate AI Summary" to get a fun, AI-powered recap of your drinking session!
+    </div>
+    <p style="font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px;">⚠️ Only 10 free summary requests per min. Use responsibly.</p>
   </div>
 
   <div class="list-header">
@@ -684,6 +763,8 @@
 
 </div>
 
+<datalist id="person-suggestions"></datalist>
+
 <div class="toast" id="toast"></div>
 
 <div class="modal-overlay" id="edit-modal">
@@ -727,7 +808,7 @@
     </div>
     <div class="field">
       <label>Person</label>
-      <input type="text" id="edit-person" placeholder="Name" />
+      <input type="text" id="edit-person" placeholder="Name" list="person-suggestions" />
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
@@ -796,6 +877,9 @@
     const currentVal = sel.value;
     sel.innerHTML = '<option value="">All</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
     sel.value = currentVal;
+    // Also populate the datalist for autocomplete suggestions
+    const dl = document.getElementById('person-suggestions');
+    dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
   }
 
   function getDrinkDateISO() {
@@ -851,6 +935,8 @@
       currentPage = 1;
       render();
       showToast('Drink logged 🍺');
+      // Save name to localStorage so it's remembered next time
+      localStorage.setItem('lastPerson', person);
       document.getElementById('exp-name').value = '';
       document.getElementById('exp-qty').value = '1';
       setDefaultDateTime();
@@ -1302,6 +1388,109 @@
     buildLeaderboard();
   }
 
+  async function generateAISummary() {
+    if (expenses.length === 0) {
+      showToast('Log some drinks first! 🍺');
+      return;
+    }
+
+    const btn = document.getElementById('ai-btn');
+    const body = document.getElementById('ai-summary-body');
+    const card = document.getElementById('ai-summary-card');
+
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    card.classList.add('show');
+    body.textContent = 'Thinking';
+    body.className = 'ai-summary-body loading-dots';
+
+    // Gather data filtered by the current leaderboard range
+    let filtered = expenses;
+    if (leaderboardRange === 'today') {
+      const now = new Date();
+      filtered = expenses.filter(e => {
+        const dt = e.drink_date ? new Date(e.drink_date) : new Date(e.created_at);
+        return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate();
+      });
+    } else if (leaderboardRange === 'month') {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      filtered = expenses.filter(e => {
+        const dt = e.drink_date ? new Date(e.drink_date) : new Date(e.created_at);
+        return dt >= monthStart;
+      });
+    }
+
+    // Build a compact summary of the data including drink descriptions
+    const byPerson = {};
+    const byCategory = {};
+    for (const exp of filtered) {
+      const person = normalizeName(exp.paid_by) || 'Unknown';
+      const cat = exp.category || 'other';
+      const qty = Number(exp.quantity) || 1;
+      const drinkName = (exp.name || '').trim();
+      if (!byPerson[person]) byPerson[person] = { total: 0, categories: {}, drinks: [] };
+      byPerson[person].total += qty;
+      byPerson[person].categories[cat] = (byPerson[person].categories[cat] || 0) + qty;
+      byPerson[person].drinks.push(`${drinkName || catLabels[cat] || cat} x${qty}`);
+      byCategory[cat] = (byCategory[cat] || 0) + qty;
+    }
+
+    const rangeLabel = leaderboardRange === 'today' ? 'today' : leaderboardRange === 'month' ? 'this month' : 'all time';
+    const dataStr = Object.entries(byPerson).map(([name, d]) =>
+      `${name}: ${d.total} drinks — ${d.drinks.join(', ')}`
+    ).join('; ');
+
+    const prompt = `Here's the drink log data for a group ${rangeLabel}: ${dataStr}. Write a fun, lighthearted summary (3-4 sentences) that calls out each person by name and what they've been up to. Give anyone at the top a playful compliment (if multiple people are tied for first, give them all equal credit), tease the lightweights a little, and make observations about their drink choices — you can reference specific drink names when it adds flavor, but don't force it. Mention who's loyal to one thing vs who's all over the place, and who has questionable taste. End with an overall vibe check of the group's session. Use emojis. Keep it cheeky but friendly — like a funny recap between friends.
+
+Important context: This group has a tradition of going to Marg Club every Tuesday where they get $1 margs on certain Tuesdays. If the data shows Tuesday-heavy margarita drinking, call out and celebrate that tradition in the recap if the summary is generate on a Tuesday. If the summary is not generated on a Tuesday, then done give a shoutout to $1 Margs.`;
+
+    try {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=AIzaSyDjZZEe44on3ktcNu0Gxk86gL8h5JTPipg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (!res.ok) {
+        let errMsg = '';
+        try {
+          const errData = await res.json();
+          errMsg = errData?.error?.message || '';
+        } catch(_) {}
+        throw { status: res.status, message: errMsg };
+      }
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI.';
+      body.className = 'ai-summary-body';
+      body.textContent = text.trim();
+    } catch(e) {
+      body.className = 'ai-summary-body';
+      const status = e?.status || 0;
+      if (status === 429) {
+        body.textContent = 'Whoa there! You or your friends have been hitting that button pretty hard 🍻 Give it a minute and try again!';
+      } else if (status === 403) {
+        body.textContent = 'The AI got shy — that prompt might have been a bit much. Try again with something tamer! 😅';
+      } else if (status === 503) {
+        body.textContent = "Gemini's slammed right now — too many people asking for drink recaps 🍺 Try again in a bit!";
+      } else if (status === 401) {
+        body.textContent = 'The AI isn\'t configured properly. Check your API key! 🔑';
+      } else if (status === 404) {
+        body.textContent = 'The AI model isn\'t available right now. Try again later! 🔄';
+      } else {
+        body.textContent = 'Couldn\'t get the AI to respond right now. Try again in a bit! 🫠';
+      }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      <path d="M12 8v4l2 2"/>
+    </svg> Generate AI Summary`;
+  }
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1315,6 +1504,10 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeEditModal();
   });
+
+  // Auto-fill the name field from localStorage (last person who logged)
+  const savedPerson = localStorage.getItem('lastPerson');
+  if (savedPerson) document.getElementById('exp-person').value = savedPerson;
 
   setDefaultDateTime();
   fetchExpenses();
