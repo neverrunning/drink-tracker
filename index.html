@@ -645,6 +645,7 @@
           <option value="margs">🍹 Margs</option>
           <option value="cocktail">🍸 Cocktails</option>
           <option value="wine">🍷 Wine</option>
+          <option value="seltzer">🥫 Seltzer</option>
           <option value="shots">🥃 Shots</option>
           <option value="remote">💻 Remote Check-in</option>
           <option value="other">💳 Other</option>
@@ -715,6 +716,7 @@
       <button class="filter-pill" onclick="setFilter('margs', this)">🍹 Margs</button>
       <button class="filter-pill" onclick="setFilter('cocktail', this)">🍸 Cocktails</button>
       <button class="filter-pill" onclick="setFilter('wine', this)">🍷 Wine</button>
+      <button class="filter-pill" onclick="setFilter('seltzer', this)">🥫 Seltzer</button>
       <button class="filter-pill" onclick="setFilter('shots', this)">🥃 Shots</button>
       <button class="filter-pill" onclick="setFilter('remote', this)">💻 Remote Check-in</button>
     </div>
@@ -783,6 +785,7 @@
           <option value="margs">🍹 Margs</option>
           <option value="cocktail">🍸 Cocktails</option>
           <option value="wine">🍷 Wine</option>
+          <option value="seltzer">🥫 Seltzer</option>
           <option value="shots">🥃 Shots</option>
           <option value="remote">💻 Remote Check-in</option>
           <option value="other">💳 Other</option>
@@ -828,9 +831,9 @@
     'Prefer': 'return=representation'
   };
 
-  const catIcons   = { beer:'🍺', margs:'🍹', cocktail:'🍸', wine:'🍷', shots:'🥃', remote:'💻', other:'💳' };
-  const catLabels  = { beer:'Beer', margs:'Margs', cocktail:'Cocktails', wine:'Wine', shots:'Shots', remote:'Remote Check-in', other:'Other' };
-  const catOrder   = ['beer','margs','cocktail','wine','shots','remote','other'];
+  const catIcons   = { beer:'🍺', margs:'🍹', cocktail:'🍸', wine:'🍷', seltzer:'🥫', shots:'🥃', remote:'💻', other:'💳' };
+  const catLabels  = { beer:'Beer', margs:'Margs', cocktail:'Cocktails', wine:'Wine', seltzer:'Seltzer', shots:'Shots', remote:'Remote Check-in', other:'Other' };
+  const catOrder   = ['beer','margs','cocktail','wine','seltzer','shots','remote','other'];
 
   let expenses = [];
   let currentFilter = 'all';
