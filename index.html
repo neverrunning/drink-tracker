@@ -319,6 +319,23 @@
   }
   .leaderboard-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
   .leaderboard-toggles { display: flex; gap: 6px; }
+  .leaderboard-header .bf-group { display: flex; flex-direction: column; gap: 4px; }
+  .leaderboard-header .bf-group label {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .leaderboard-header .bf-group input {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .leaderboard-header .bf-group input:focus { border-color: var(--amber); }
   .lb-toggle {
     font-size: 12px;
     padding: 5px 13px;
@@ -636,7 +653,7 @@
     <div class="form-row">
       <div class="field">
         <label>Description</label>
-        <input type="text" id="exp-name" placeholder="e.g. $1 Marg, Yummy Shot..." />
+        <input type="text" id="exp-name" placeholder="e.g. $1 Marg, Yummy Shot..." maxlength="50" />
       </div>
       <div class="field">
         <label>Category</label>
@@ -685,8 +702,20 @@
       <div class="leaderboard-title">🏆 Alcoholic Leaderboard</div>
       <div class="leaderboard-toggles">
         <button class="lb-toggle active" onclick="setLeaderboardRange('month', this)">This Month</button>
+        <button class="lb-toggle" onclick="setLeaderboardRange('week', this)">This Week</button>
         <button class="lb-toggle" onclick="setLeaderboardRange('today', this)">Today</button>
         <button class="lb-toggle" onclick="setLeaderboardRange('all', this)">All Time</button>
+        <button class="lb-toggle" onclick="setLeaderboardRange('custom', this)">Custom</button>
+      </div>
+      <div class="custom-dates hidden" id="lb-custom-dates" style="margin-bottom:0.5rem;width:100%;">
+        <div class="bf-group">
+          <label>From</label>
+          <input type="date" id="lb-date-from" onchange="onLeaderboardCustomChange()" />
+        </div>
+        <div class="bf-group">
+          <label>To</label>
+          <input type="date" id="lb-date-to" onchange="onLeaderboardCustomChange()" />
+        </div>
       </div>
     </div>
     <div id="leaderboard-body"><div class="lb-empty">Log some drinks to see the rankings!</div></div>
@@ -733,6 +762,7 @@
       </div>
       <div class="range-tabs">
         <button class="range-tab active" onclick="setBreakdownRange('month', this)">This Month</button>
+        <button class="range-tab" onclick="setBreakdownRange('week', this)">This Week</button>
         <button class="range-tab" onclick="setBreakdownRange('today', this)">Today</button>
         <button class="range-tab" onclick="setBreakdownRange('all', this)">All Time</button>
         <button class="range-tab" onclick="setBreakdownRange('custom', this)">Custom</button>
@@ -775,7 +805,7 @@
     <h2>Edit drink</h2>
     <div class="field">
       <label>Description</label>
-      <input type="text" id="edit-name" placeholder="e.g. Cold IPA, house marg..." />
+      <input type="text" id="edit-name" placeholder="e.g. Cold IPA, house marg..." maxlength="50" />
     </div>
     <div class="field-row">
       <div class="field">
@@ -843,7 +873,7 @@
   let bdDateFrom = '';
   let bdDateTo = '';
   let currentPage = 1;
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 15;
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -907,9 +937,9 @@
   }
 
   async function addExpense() {
-    const name     = document.getElementById('exp-name').value.trim();
+    const name     = document.getElementById('exp-name').value.trim().slice(0, 50);
     const category = document.getElementById('exp-category').value;
-    const qty      = Math.max(1, parseInt(document.getElementById('exp-qty').value) || 1);
+    const qty      = Math.min(99, Math.max(1, parseInt(document.getElementById('exp-qty').value) || 1));
     const person   = normalizeName(document.getElementById('exp-person').value);
     const drinkDate = getDrinkDateISO();
 
@@ -991,9 +1021,9 @@
 
   async function saveExpense() {
     if (!editingId) return;
-    const name     = document.getElementById('edit-name').value.trim();
+    const name     = document.getElementById('edit-name').value.trim().slice(0, 50);
     const category = document.getElementById('edit-category').value;
-    const qty      = Math.max(1, parseInt(document.getElementById('edit-qty').value) || 1);
+    const qty      = Math.min(99, Math.max(1, parseInt(document.getElementById('edit-qty').value) || 1));
     const person   = normalizeName(document.getElementById('edit-person').value);
     const dateVal  = document.getElementById('edit-date').value;
     const timeVal  = document.getElementById('edit-time').value;
@@ -1119,6 +1149,12 @@
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       items = items.filter(e => new Date(e.drink_date || e.created_at) >= monthStart);
+    } else if (bdRange === 'week') {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      items = items.filter(e => new Date(e.drink_date || e.created_at) >= weekStart);
     } else if (bdRange === 'custom') {
       if (bdDateFrom) {
         const from = new Date(bdDateFrom + 'T00:00:00');
@@ -1212,11 +1248,20 @@
   }
 
   let leaderboardRange = 'month';
+  let lbDateFrom = '';
+  let lbDateTo = '';
 
   function setLeaderboardRange(range, btn) {
     leaderboardRange = range;
     document.querySelectorAll('.lb-toggle').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    document.getElementById('lb-custom-dates').classList.toggle('hidden', range !== 'custom');
+    buildLeaderboard();
+  }
+
+  function onLeaderboardCustomChange() {
+    lbDateFrom = document.getElementById('lb-date-from').value;
+    lbDateTo = document.getElementById('lb-date-to').value;
     buildLeaderboard();
   }
 
@@ -1243,10 +1288,39 @@
         const dt = e.drink_date ? new Date(e.drink_date) : new Date(e.created_at);
         return dt >= monthStart;
       });
+    } else if (leaderboardRange === 'week') {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      filtered = expenses.filter(e => {
+        const dt = e.drink_date ? new Date(e.drink_date) : new Date(e.created_at);
+        return dt >= weekStart;
+      });
+    } else if (leaderboardRange === 'custom') {
+      if (lbDateFrom) {
+        const from = new Date(lbDateFrom + 'T00:00:00');
+        filtered = filtered.filter(e => {
+          const dt = new Date(e.drink_date || e.created_at);
+          return dt >= from;
+        });
+      }
+      if (lbDateTo) {
+        const to = new Date(lbDateTo + 'T23:59:59');
+        filtered = filtered.filter(e => {
+          const dt = new Date(e.drink_date || e.created_at);
+          return dt <= to;
+        });
+      }
     }
 
     if (filtered.length === 0) {
-      el.innerHTML = '<div class="lb-empty">No drinks this month yet. Get drinking! 🍺</div>';
+      const rangeMsg = leaderboardRange === 'today' ? 'today' : 
+                       leaderboardRange === 'week' ? 'this week' : 
+                       leaderboardRange === 'month' ? 'this month' : 
+                       leaderboardRange === 'custom' ? 'in this date range' : 
+                       'all time';
+      el.innerHTML = '<div class="lb-empty">No drinks ' + rangeMsg + ' yet. Get drinking! 🍺</div>';
       return;
     }
 
